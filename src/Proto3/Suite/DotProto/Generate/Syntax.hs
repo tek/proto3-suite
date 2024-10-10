@@ -20,7 +20,7 @@ import GHC.Types.Name.Occurrence (NameSpace, dataName, mkOccName, tcName, tvName
 import GHC.Types.Name.Reader (mkRdrQual, mkRdrUnqual, rdrNameSpace)
 import GHC.Types.SrcLoc (GenLocated(..), SrcSpan, generatedSrcSpan)
 
-#if !MIN_VERSION_ghc(9,10,0)
+#if !MIN_VERSION_ghc(9,12,0)
 import GHC.Data.Bag (listToBag)
 #endif
 
@@ -420,7 +420,7 @@ unrestrictedArrow_ = HsUnrestrictedArrow synDef
 
 unbangedTy_ :: HsType -> HsBangType
 unbangedTy_ = noLocA . GHC.HsBangTy synDef (
-#if MIN_VERSION_ghc(9,10,0)
+#if MIN_VERSION_ghc(9,12,0)
   HsBang
 #else
   HsSrcBang synDef 
@@ -662,7 +662,7 @@ instDecl_ className classArgs binds = noLocA $ GHC.InstD NoExtField ClsInstD
           noLocA $
 #endif
             HsSig NoExtField implicitTyVarBinders_ (tyConApply className classArgs)
-#if MIN_VERSION_ghc(9,10,0)
+#if MIN_VERSION_ghc(9,12,0)
       , cid_binds = binds
 #else
       , cid_binds = listToBag binds
@@ -739,7 +739,7 @@ functionLike_ strictness name alts = noLocA $ mkFunBind generated name (map matc
 #endif
 
     match :: ([HsPat], HsExp) -> HsMatch
-#if MIN_VERSION_ghc(9,10,0)
+#if MIN_VERSION_ghc(9,12,0)
     match (pats, rhs) = mkSimpleMatch ctxt (noLocA pats) rhs
 #else
     match (pats, rhs) = mkSimpleMatch ctxt pats rhs
@@ -773,10 +773,30 @@ implicitTyVarBinders_ =
 #endif
 
 userTyVar_ :: flag -> HsName -> LHsTyVarBndr flag GhcPs
+#if MIN_VERSION_ghc(9,12,0)
+userTyVar_ flag nm =
+  noLocA $ GHC.HsTvb {
+    tvb_ext = synDef,
+    tvb_flag = flag,
+    tvb_var = HsBndrVar synDef nm,
+    tvb_kind = HsBndrNoKind synDef
+  }
+#else
 userTyVar_ flag nm = noLocA $ GHC.UserTyVar synDef flag nm
+#endif
 
 kindedTyVar_ :: flag -> HsName -> HsType -> LHsTyVarBndr flag GhcPs
+#if MIN_VERSION_ghc(9,12,0)
+kindedTyVar_ flag nm ty =
+  noLocA $ GHC.HsTvb {
+    tvb_ext = synDef,
+    tvb_flag = flag,
+    tvb_var = HsBndrVar synDef nm,
+    tvb_kind = HsBndrKind synDef ty
+  }
+#else
 kindedTyVar_ flag nm ty = noLocA $ GHC.KindedTyVar synDef flag nm ty
+#endif
 
 wild_ :: HsPat
 wild_ = noLocA $ WildPat NoExtField
@@ -827,7 +847,7 @@ recordCtor_ nm fields = noLocA RecordCon
 #endif
   , rcon_flds = HsRecFields
       { rec_flds = fields
-#if MIN_VERSION_ghc(9,10,0)
+#if MIN_VERSION_ghc(9,12,0)
       , rec_ext = NoExtField
 #endif
       , rec_dotdot = Nothing
@@ -914,7 +934,7 @@ conPat (L _ ctor) = nlConPat ctor
 recPat :: HsQName -> [LHsRecField GhcPs HsPat] -> HsPat
 recPat ctor fields = noLocA $ ConPat synDef ctor $ RecCon $ HsRecFields
   { rec_flds = fields
-#if MIN_VERSION_ghc(9,10,0)
+#if MIN_VERSION_ghc(9,12,0)
   , rec_ext = NoExtField
 #endif
   , rec_dotdot = Nothing
@@ -976,7 +996,7 @@ let_ locals e =
 #endif
   where
     binds = HsValBinds synDef (ValBinds synDef (
-#if !MIN_VERSION_ghc(9,10,0)
+#if !MIN_VERSION_ghc(9,12,0)
       listToBag
 #endif
       locals) [])
@@ -984,7 +1004,7 @@ let_ locals e =
 -- | Lambda abstraction.
 lambda_ :: [HsPat] -> HsExp -> HsExp
 lambda_ = mkHsLam
-#if MIN_VERSION_ghc(9,10,0)
+#if MIN_VERSION_ghc(9,12,0)
                   . noLocA
 #endif
 
@@ -1145,7 +1165,7 @@ letStmt_ locals = noLocA $ LetStmt synDef
                       binds
   where
     binds = HsValBinds synDef (ValBinds synDef (
-#if !MIN_VERSION_ghc(9,10,0)
+#if !MIN_VERSION_ghc(9,12,0)
       listToBag
 #endif
       locals) [])
